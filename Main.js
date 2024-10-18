@@ -31,6 +31,22 @@ const server = http.createServer(async (req, res) => {
       res.end('Not Found');
     }
   } 
+  // Обробка PUT запиту
+  else if (method === 'PUT') {
+    const chunks = [];
+    req.on('data', chunk => chunks.push(chunk));
+    req.on('end', async () => {
+      const imageBuffer = Buffer.concat(chunks);
+      try {
+        await fs.writeFile(filePath, imageBuffer);
+        res.writeHead(201, { 'Content-Type': 'text/plain' });
+        res.end('Created');
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'text/plain' });
+        res.end('Internal Server Error');
+      }
+    });
+  } 
   else {
     res.writeHead(405, { 'Content-Type': 'text/plain' });
     res.end('Method Not Allowed');
