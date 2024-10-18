@@ -2,6 +2,7 @@ const http = require('http');
 const fs = require('fs').promises;
 const path = require('path');
 const { program } = require('commander');
+const superagent = require('superagent'); 
 
 program
   .requiredOption('-h, --host <host>', 'server host')
@@ -16,10 +17,9 @@ const cacheDir = path.join(__dirname, options.cache);
 const server = http.createServer(async (req, res) => {
   const url = req.url;
   const method = req.method;
-  const statusCode = parseInt(url.slice(1)); 
+  const statusCode = parseInt(url.slice(1));
   const filePath = path.join(cacheDir, `${statusCode}.jpg`);
 
-  // Обробка GET запиту
   if (method === 'GET') {
     try {
       await fs.access(filePath);
@@ -27,11 +27,23 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(200, { 'Content-Type': 'image/jpeg' });
       res.end(image);
     } catch (err) {
-      res.writeHead(404, { 'Content-Type': 'text/plain' });
-      res.end('Not Found');
+      
+      try {
+        const imageResponse = await superagent.get(`https://http.cat/${statusCode}`);
+        const imageBuffer = imageResponse.body;
+
+    
+        await fs.writeFile(filePath, imageBuffer);
+
+        res.writeHead(200, { 'Content-Type': 'image/jpeg' });
+        res.end(imageBuffer);
+
+    } catch (httpCatError) {
+        res.writeHead(404, { 'Content-Type': 'text/plain' });
+        res.end('Not Found');
+      }
     }
   } 
-  // Обробка PUT запиту
   else if (method === 'PUT') {
     const chunks = [];
     req.on('data', chunk => chunks.push(chunk));
@@ -47,7 +59,6 @@ const server = http.createServer(async (req, res) => {
       }
     });
   } 
-  // Обробка DELETE запиту
   else if (method === 'DELETE') {
     try {
       await fs.unlink(filePath);
@@ -57,8 +68,7 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(404, { 'Content-Type': 'text/plain' });
       res.end('Not Found');
     }
-  }
-  // Обробка інших методів
+  } 
   else {
     res.writeHead(405, { 'Content-Type': 'text/plain' });
     res.end('Method Not Allowed');
