@@ -47,6 +47,18 @@ const server = http.createServer(async (req, res) => {
       }
     });
   } 
+  // Обробка DELETE запиту
+  else if (method === 'DELETE') {
+    try {
+      await fs.unlink(filePath);
+      res.writeHead(200, { 'Content-Type': 'text/plain' });
+      res.end('Deleted');
+    } catch (err) {
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end('Not Found');
+    }
+  }
+  // Обробка інших методів
   else {
     res.writeHead(405, { 'Content-Type': 'text/plain' });
     res.end('Method Not Allowed');
